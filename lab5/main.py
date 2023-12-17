@@ -1,5 +1,5 @@
-import math
 import matplotlib.pyplot as plt
+from math import sin, pi
 
 '''
     L1    R1                  R2
@@ -22,41 +22,49 @@ R4 = 2
 L1 = 0.01
 L2 = 0.02
 C1 = 300 * 10 ** (-6)
+C2 = 150 * 10 ** (-6)
 t_integration = 0.2
 h = 0.00001
 
-U2_initial = 0
-I_L2_initial = 0
+
+U1 = lambda t: Umax * sin(2 * pi * f * t)
+U2_0 = 0
+I_L1_0 = 0
+I_L2_0 = 0
+U_C1_0 = 0
 
 
-def U1(t):
-    return Umax * math.sin(2 * math.pi * f * t)
+def dU2_dt(U1, U2, I_L1, I_L2, U_C1):
+    return (U1 - U2 - R1 * I_L1) / L1
 
 
-def system_eq(t, U2, I_L2):
-    dU2_dt = (1 / (L2 * C1)) * (U1(t) - U2 - R2 * I_L2)
-    dI_L2_dt = (1 / L2) * (U2 - R2 * I_L2)
-    return dU2_dt, dI_L2_dt
+def euler_method(U1, U2_0, I_L1_0, I_L2_0, U_C1_0, t_integration, h):
+    num_steps = int(t_integration / h)
+    U1_values = [U1(i * h) for i in range(num_steps + 1)]
+    U2_values = [U2_0]
+
+    for i in range(1, num_steps + 1):
+        t = i * h
 
 
-def implicit_euler(U2, I_L2, t, h):
-    dU2_dt, dI_L2_dt = system_eq(t, U2, I_L2)
-    U2_new = U2 + h * dU2_dt
-    I_L2_new = I_L2 + h * dI_L2_dt
-    return U2_new, I_L2_new
+        U2_1 = U2_0 + h * dU2_dt(U1(t), U2_0, I_L1_0, I_L2_0, U_C1_0)
 
 
-time_values = [0]
-U2_values = [U2_initial]
+        U2_values.append(U2_1)
 
-for t in range(int(t_integration / h)):
-    U2, I_L2 = implicit_euler(U2_values[-1], I_L2_initial, time_values[-1], h)
-    U2_values.append(U2)
-    time_values.append(time_values[-1] + h)
 
-plt.plot(time_values, U2_values)
-plt.title('Перехідний процес вихідної напруги U2')
-plt.xlabel('Час (с)')
-plt.ylabel('U2 (В)')
-plt.grid(True)
+        U2_0 = U2_1
+
+    return U1_values, U2_values
+
+
+U1_values, U2_values = euler_method(U1, U2_0, I_L1_0, I_L2_0, U_C1_0, t_integration, h)
+
+
+time_values = [i * h for i in range(len(U2_values))]
+plt.plot(time_values, U1_values, label='Вхідна напруга U1')
+plt.plot(time_values, U2_values, label='Вихідна напруга U2')
+plt.xlabel('Час (сек)')
+plt.ylabel('Напруга (В)')
+plt.legend()
 plt.show()
